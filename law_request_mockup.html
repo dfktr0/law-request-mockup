@@ -1,0 +1,344 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Mock Law-Enforcement Request — Demo</title>
+  <style>
+    /* Spotify-ish dark green gradient theme */
+    :root{
+      --bg:#0f1416;
+      --accent:#1db954; /* spotify green */
+      --muted:#aeb6b4;
+      --card:#111416;
+    }
+    body{margin:0;font-family:Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;background: linear-gradient(180deg,#071011 0%, #071617 40%, #071714 100%);color:#e9efe9;}
+    .container{max-width:980px;margin:40px auto;padding:28px}
+    header{display:flex;align-items:center;gap:16px}
+    .logo{width:56px;height:56px;border-radius:8px;background:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:700;color:#06120b}
+    h1{margin:0;font-size:20px}
+    p.lead{color:var(--muted);margin-top:6px}
+
+    .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);padding:28px;border-radius:12px;box-shadow:0 6px 18px rgba(0,0,0,0.6);}
+
+    .hero{display:grid;grid-template-columns:1fr 360px;gap:24px;align-items:center}
+    .hero .copy h2{font-size:28px;margin:0}
+    .email-box{background:linear-gradient(90deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));padding:18px;border-radius:10px}
+    label{display:block;margin-bottom:8px;color:var(--muted);font-size:13px}
+    input[type=text], input[type=email], select, textarea {width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:transparent;color:inherit;font-size:14px}
+    .muted{color:var(--muted);font-size:13px}
+    .btn{background:var(--accent);border:none;padding:10px 14px;border-radius:8px;color:#03120a;font-weight:700;cursor:pointer}
+    .btn.secondary{background:transparent;color:var(--accent);border:1px solid rgba(255,255,255,0.06)}
+    .error{color:#ff6b6b;margin-top:8px}
+    .success{color:#9be39b}
+
+    /* Modal */
+    .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.6);display:none;align-items:center;justify-content:center}
+    .modal{background:var(--card);padding:20px;border-radius:10px;min-width:320px}
+
+    /* form 2 */
+    .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .full{grid-column:1/-1}
+    .small{font-size:13px;color:var(--muted)}
+    .checkbox-row{display:flex;gap:10px;align-items:center}
+    .file-info{font-size:13px;color:var(--muted);margin-top:6px}
+
+    footer{margin-top:18px;color:var(--muted);font-size:13px}
+
+    /* responsive */
+    @media (max-width:880px){.hero{grid-template-columns:1fr}.container{padding:16px}}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="logo">SP</div>
+      <div>
+        <h1>Mock — Law Enforcement Request</h1>
+        <p class="lead">A demo form inspired by the look of major music service landing pages. (For testing only)</p>
+      </div>
+    </header>
+
+    <main class="card" id="view-root">
+      <!-- VIEW: step 1 -->
+      <section id="view-step1">
+        <div class="hero">
+          <div class="copy">
+            <h2>Verify requesting email</h2>
+            <p class="muted">Enter an email and we will simulate sending a 2FA code for verification. Certain public email providers and any <code>.com</code> addresses are considered unverified for this mock.</p>
+          </div>
+
+          <div class="email-box">
+            <label for="email">Email address</label>
+            <input id="email" type="email" placeholder="you@agency.example" />
+            <div style="display:flex;gap:8px;margin-top:12px;">
+              <button id="sendCode" class="btn">Send verification code</button>
+              <button id="previewRules" class="btn secondary">Who is considered unverified?</button>
+            </div>
+            <div id="emailError" class="error" aria-live="polite"></div>
+            <div id="emailSuccess" class="success" aria-live="polite"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- modal for 2FA code -->
+      <div id="modal" class="modal-backdrop" role="dialog" aria-modal="true">
+        <div class="modal">
+          <h3>Verification code</h3>
+          <p class="muted">A one-time code has been generated for this demo. Enter it to continue.</p>
+          <div style="margin-top:12px;display:flex;gap:8px;align-items:center">
+            <input id="codeInput" type="text" placeholder="6-digit code" maxlength="6" />
+            <button id="verifyCodeBtn" class="btn">Verify</button>
+          </div>
+          <p id="codeMsg" class="error"></p>
+          <div style="margin-top:10px;text-align:right"><button id="closeModal" class="btn secondary">Cancel</button></div>
+        </div>
+      </div>
+
+      <!-- VIEW: step 2 -->
+      <section id="view-step2" style="display:none;margin-top:12px">
+        <h3>Detailed request information</h3>
+        <p class="muted">Please fill every required field. Upload a supporting document (PDF preferred). The upload must not contain PII like full credit card numbers or full SSNs.</p>
+
+        <form id="requestForm">
+          <div class="form-grid">
+            <div>
+              <label>Full name of requestor</label>
+              <input name="fullname" required />
+            </div>
+            <div>
+              <label>Law enforcement reference / case number</label>
+              <input name="caseNumber" required />
+            </div>
+
+            <div>
+              <label>Emergency?</label>
+              <select id="emergency" name="emergency" required>
+                <option value="No">No</option>
+                <option value="Yes">Yes</option>
+              </select>
+            </div>
+            <div>
+              <label>Country of requestor</label>
+              <input name="country" required placeholder="e.g. United States" />
+            </div>
+
+            <div>
+              <label>Law enforcement agency</label>
+              <input name="agency" required placeholder="e.g. FBI, Local PD" />
+            </div>
+            <div>
+              <label>Type of document submitted</label>
+              <select name="docType" required>
+                <option>Subpoena</option>
+                <option>Search warrant</option>
+                <option>NDO</option>
+                <option>Other</option>
+              </select>
+            </div>
+
+            <div class="full">
+              <label>What data is being requested?</label>
+              <div class="checkbox-row">
+                <input type="checkbox" id="bsi" checked disabled />
+                <label for="bsi" class="small">Basic Subscriber Information (BSI) — see details below</label>
+              </div>
+              <div class="small muted" style="margin-top:8px;">
+                <strong>BSI includes:</strong> display name, username, email address, date of birth, account creation date, device model & OS used, payment info (masked), subscription/service used.
+              </div>
+
+              <div style="margin-top:10px">
+                <label>Additional information requested</label>
+                <div class="checkbox-row">
+                  <input type="checkbox" id="ipData" name="ipData" />
+                  <label for="ipData">IP data</label>
+                </div>
+                <div class="checkbox-row">
+                  <input type="checkbox" id="msgData" name="msgData" />
+                  <label for="msgData">Messaging data</label>
+                </div>
+
+                <div style="margin-top:8px;display:flex;gap:8px;align-items:center">
+                  <label class="small" style="margin:0">From:</label>
+                  <input type="date" name="fromDate" />
+                  <label class="small" style="margin:0">To:</label>
+                  <input type="date" name="toDate" />
+                </div>
+              </div>
+            </div>
+
+            <div class="full">
+              <label>Upload supporting document (PDF preferred) <span class="small muted">(.pdf, .doc, .docx, .jpg allowed)</span></label>
+              <input id="fileUpload" type="file" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" required />
+              <div id="fileNote" class="file-info">No file uploaded yet.</div>
+              <div id="fileError" class="error"></div>
+            </div>
+
+            <div class="full">
+              <label>
+                <input id="perjury" type="checkbox" />
+                <span class="small"> I declare under penalty of perjury under the laws of the United States of America that the foregoing is true and correct.</span>
+              </label>
+            </div>
+
+            <div class="full" style="text-align:right">
+              <button id="submitBtn" type="submit" class="btn">Submit request</button>
+            </div>
+          </div>
+        </form>
+      </section>
+
+    </main>
+
+    <footer>
+      <small>This is a mockup/demo. Do not submit real case data here.</small>
+    </footer>
+  </div>
+
+  <script>
+    // Popular public email domains to mark as UNVERIFIED
+    const PUBLIC_DOMAINS = new Set([
+      'gmail.com','yahoo.com','outlook.com','hotmail.com','aol.com','icloud.com','protonmail.com','mail.com','zoho.com','gmx.com'
+    ]);
+
+    const emailInput = document.getElementById('email');
+    const sendBtn = document.getElementById('sendCode');
+    const emailError = document.getElementById('emailError');
+    const emailSuccess = document.getElementById('emailSuccess');
+    const modal = document.getElementById('modal');
+    const codeInput = document.getElementById('codeInput');
+    const verifyCodeBtn = document.getElementById('verifyCodeBtn');
+    const codeMsg = document.getElementById('codeMsg');
+    const closeModal = document.getElementById('closeModal');
+    const view1 = document.getElementById('view-step1');
+    const view2 = document.getElementById('view-step2');
+    const previewRules = document.getElementById('previewRules');
+
+    let generatedCode = null;
+
+    function isValidEmailFormat(email){
+      // Basic RFC-ish check
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    }
+
+    function isUnverifiedByRules(email){
+      // Any email ending with '.com' is considered unverified (per requirement)
+      if(email.toLowerCase().endsWith('.com')) return true;
+      const domain = email.split('@')[1] || '';
+      if(PUBLIC_DOMAINS.has(domain.toLowerCase())) return true;
+      return false;
+    }
+
+    sendBtn.addEventListener('click', ()=>{
+      emailError.textContent = '';
+      emailSuccess.textContent = '';
+      const email = emailInput.value.trim();
+      if(!isValidEmailFormat(email)){
+        emailError.textContent = 'Unverified email';
+        return;
+      }
+      if(isUnverifiedByRules(email)){
+        emailError.textContent = 'Unverified email';
+        return;
+      }
+
+      // OK -> generate 6-digit code and show modal
+      generatedCode = Math.floor(100000 + Math.random()*900000).toString();
+      emailSuccess.textContent = 'Verification code sent (demo)';
+      // show modal
+      modal.style.display = 'flex';
+      codeInput.value = '';
+      codeMsg.textContent = '';
+      // For demo convenience, display code inside modal title (in real system you wouldn't!)
+      const existing = document.getElementById('demoCodeShow');
+      if(existing) existing.remove();
+      const note = document.createElement('div');
+      note.id = 'demoCodeShow';
+      note.className = 'small muted';
+      note.style.marginTop = '8px';
+      note.textContent = 'Demo code: ' + generatedCode + ' (displayed for testing)';
+      modal.querySelector('.modal').appendChild(note);
+    });
+
+    verifyCodeBtn.addEventListener('click', ()=>{
+      codeMsg.textContent = '';
+      if(!generatedCode){codeMsg.textContent = 'No code generated.';return}
+      const v = codeInput.value.trim();
+      if(v === generatedCode){
+        modal.style.display = 'none';
+        // go to step 2
+        view1.style.display = 'none';
+        view2.style.display = 'block';
+      } else {
+        codeMsg.textContent = 'Invalid code, try again.';
+      }
+    });
+    closeModal.addEventListener('click', ()=>{modal.style.display='none'});
+
+    // Preview rules
+    previewRules.addEventListener('click', ()=>{
+      alert('For this demo, any address ending in .com or from common public mail providers (gmail, yahoo, outlook, hotmail, aol, icloud, protonmail, mail.com, zoho, gmx) is considered unverified.');
+    });
+
+    // Form handling and file checks
+    const form = document.getElementById('requestForm');
+    const fileInput = document.getElementById('fileUpload');
+    const fileNote = document.getElementById('fileNote');
+    const fileError = document.getElementById('fileError');
+    const submitBtn = document.getElementById('submitBtn');
+    const perjury = document.getElementById('perjury');
+
+    let uploadedFile = null;
+
+    fileInput.addEventListener('change', async (e)=>{
+      fileError.textContent = '';
+      uploadedFile = e.target.files[0];
+      if(!uploadedFile){fileNote.textContent='No file uploaded yet.';return}
+      fileNote.textContent = uploadedFile.name + ' (' + Math.round(uploadedFile.size/1024) + ' KB)';
+
+      // Basic checks to prevent PII in file: we will try to read file and search for suspicious numeric sequences.
+      try{
+        const arrBuff = await uploadedFile.arrayBuffer();
+        // convert to a string of bytes to search for digit patterns (works somewhat for text-based PDFs and plain files)
+        let s = '';
+        try{ s = new TextDecoder().decode(arrBuff); } catch(err){ s = '' }
+        // also examine filename
+        const fname = uploadedFile.name.toLowerCase();
+        if(/ssn|socialsecurity|creditcard|cardnumber/.test(fname)){
+          fileError.textContent = 'File name suggests it may contain PII. Remove PII and try again.'; uploadedFile = null; return;
+        }
+        // search for SSN pattern (e.g. 123-45-6789) or 9 contiguous digits
+        if(/\b\d{3}-?\d{2}-?\d{4}\b/.test(s) || /\d{9,}/.test(s)){
+          fileError.textContent = 'File appears to contain long numeric sequences that may be PII (SSN/credit card). Remove PII and upload again.'; uploadedFile = null; return;
+        }
+
+        fileError.textContent = '';
+      } catch(err){
+        fileError.textContent = 'Could not fully validate file contents. Please ensure it does not contain PII.'; // still allow, but final submission will enforce user perjury + file present
+      }
+    });
+
+    // disable submit until perjury and file present
+    form.addEventListener('submit', (e)=>{
+      e.preventDefault();
+      fileError.textContent = '';
+      if(!uploadedFile){fileError.textContent = 'Please upload a supporting document before continuing.';return}
+      if(!perjury.checked){fileError.textContent = 'You must accept the perjury statement before continuing.';return}
+      // final check: if previous scan found PII or file missing
+      if(fileError.textContent){return}
+
+      // Gather form data for demo display
+      const fd = new FormData(form);
+      fd.append('uploadedFileName', uploadedFile.name);
+      // Instead of sending anywhere, show a summary modal/console
+      const summary = {};
+      for(const [k,v] of fd.entries()) summary[k]=v;
+      alert('Form validated locally (demo). See console for submission object.\n\nThis mock does NOT send data to any server.');
+      console.log('DEMO submission', summary);
+    });
+
+    // small accessibility: close modal when clicking backdrop
+    modal.addEventListener('click', (e)=>{ if(e.target === modal) modal.style.display='none'; });
+  </script>
+</body>
+</html>
